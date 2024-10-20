@@ -1,35 +1,5 @@
+use crate::token::Token;
 use std::collections::HashMap;
-
-#[derive(Clone, Debug)]
-pub enum Token {
-    Id(String),
-    Int,
-    Float,
-    Char,
-    IntConst(i64),
-    FloatConst(f32),
-    CharConst(char),
-    LBracket,
-    RBracket,
-    LBrace,
-    RBrace,
-    LCol,
-    RCol,
-    Comma,
-    PComma,
-    Attr,
-    Not,
-    EQ,
-    NEQ,
-    LT,
-    LE,
-    GT,
-    GE,
-    Plus,
-    Minus,
-    Mult,
-    Div
-}
 
 pub enum State {
     Base,
@@ -39,49 +9,13 @@ pub enum State {
     Float
 }
 
-pub struct TokenList {
-    token_table : HashMap<String,Token>,
-    tokens : Vec<Token>
-}
-
-impl TokenList {
-    pub fn new()
-    -> TokenList
-    {
-        TokenList {
-            tokens : Vec::new(),
-            token_table : HashMap::from([
-                (String::from("int"), Token::Int)
-            ])
-        } 
-    }
-    
-    pub fn append(
-        &mut self,
-        token : Token)
-    {
-        self.tokens.push(token);
-    }
-
-    pub fn get_name_token(
-        &mut self,
-        lexeme : String)
-    -> Token
-    {
-        
-        let default = Token::Id(lexeme.clone());
-        let token = self.token_table
-            .get(&lexeme)
-            .unwrap_or(&default);
-        return token.clone();
-    }
-}
-
 pub fn parse(src : &String)
--> TokenList
+-> Vec<Token>
 {
+    let keyword_table = Token::get_keyword_table();
+
     let mut state = State::Base;
-    let mut tokens : TokenList = TokenList::new();
+    let mut tokens : Vec<Token> = Vec::new();
     let mut buffer : String = String::new();
     let mut to_buffer : bool;
 
@@ -92,7 +26,7 @@ pub fn parse(src : &String)
 
         match state {
             
-            // Base point and unitary tokens
+            // Base point and single component operators
             State::Base => {
                 if c.is_alphabetic() {
                     state = State::Name;
@@ -118,8 +52,9 @@ pub fn parse(src : &String)
                         ',' => Some(Token::Comma),
                         _ => None
                     };
+
                     if single_token.is_some() {
-                        tokens.append(single_token.unwrap());
+                        tokens.push(single_token.unwrap());
                         state = State::Base;
                     }
                     else {
@@ -137,8 +72,9 @@ pub fn parse(src : &String)
                 }
             }
 
+            // Double component operators
             State::Double(ref expected, ref result, ref except) => {
-                tokens.append(
+                tokens.push(
                     if c == *expected { result.clone() }
                     else { except.clone() }
                 );
@@ -149,8 +85,11 @@ pub fn parse(src : &String)
             // Names
             State::Name => {
                 if !c.is_alphanumeric() && c != '_' {
-                    let name_token = tokens.get_name_token(buffer);
-                    tokens.append(name_token);
+                    let default_token = Token::Id(buffer.clone());
+                    let token = keyword_table
+                        .get(&buffer)
+                        .unwrap_or(&default_token);
+                    tokens.push(token.clone());
                     buffer = String::new();
                     state = State::Base;
                 }
@@ -163,7 +102,7 @@ pub fn parse(src : &String)
                 }
                 else if !c.is_numeric() {
                     match buffer.parse::<i64>() {
-                        Ok(int_value) => tokens.append(Token::IntConst(int_value)),
+                        Ok(int_value) => tokens.push(Token::IntConst(int_value)),
                         Err(e) => println!("{e}")
                     }
                     buffer = String::new();
@@ -175,7 +114,7 @@ pub fn parse(src : &String)
             State::Float => {
                 if !c.is_numeric() {
                     match buffer.parse::<f32>() {
-                        Ok(float_value) => tokens.append(Token::FloatConst(float_value)),
+                        Ok(float_value) => tokens.push(Token::FloatConst(float_value)),
                         Err(e) => println!("{e}")
                     }
                     buffer = String::new();
@@ -192,12 +131,3 @@ pub fn parse(src : &String)
     return tokens;
 }
 
-pub fn main() {
-    let file_content = std::fs::read_to_string("tmp.txt")
-        .expect("Should have been able to read the file");
-    let tokens = parse(&file_content);
-    for token in tokens.tokens {
-        print!("{token:?} ");
-    }
-    println!("");
-}
