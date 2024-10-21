@@ -1,87 +1,105 @@
 use crate::token::Token;
-use std::collections::HashMap;
+use crate::token::TokenType;
+use regex::Regex;
 
 enum State {
-    Base(Option<fn(&String) -> Option<Token>>),
-    Double(char, Token, Token),
+    Base(Option<TokenType>),
     Name,
     Integer,
     Float
 }
 
-pub struct Parser {
-    keyword_table : HashMap<String, Token>
+pub struct Parser {}
+impl Parser {
+    pub fn parse(
+        buffer : &String,
+        token_type : Option<TokenType>)
+    -> Option<Token>
+    {
+        let _type = match token_type {
+            Some(_) => token_type,
+            None => match &buffer[..] {
+                ")" => Some(TokenType::RBracket),
+                "(" => Some(TokenType::LBracket),
+                "}" => Some(TokenType::RBrace),
+                "{" => Some(TokenType::LBrace),
+                "]" => Some(TokenType::RCol),
+                "[" => Some(TokenType::LCol),
+                "+" => Some(TokenType::Plus),
+                "-" => Some(TokenType::Minus),
+                "*" => Some(TokenType::Mult),
+                "/" => Some(TokenType::Div),
+                ";" => Some(TokenType::PComma),
+                "," => Some(TokenType::Comma),
+                "==" => Some(TokenType::EQ),
+                "!=" => Some(TokenType::NEQ),
+                ">=" => Some(TokenType::GE),
+                "<=" => Some(TokenType::LE),
+                "int" => Some(TokenType::Int),
+                "float" => Some(TokenType::Float),
+                "char" => Some(TokenType::Char),
+                _ => {
+                    let re = Regex::new(r"[a-zA-Z0-9_]+").unwrap();
+                    match re.is_match(buffer) {
+                        true => Some(TokenType::Id),
+                        false => None
+                    }
+                }
+                // TODO : check if name is valid (not start with weird simble, etc)
+            }
+        };
+
+        match _type {
+            None => None,
+            Some(T) => Some(Token {
+                lexeme : buffer.clone(),
+                _type : T,
+                line : -1
+            })
+        }
+    }
+}
+    
+pub struct Lexer {
+    state : State,
+    buffer : String,
+    tokens : Vec<Token>
 }
 
-impl Parser {
-    pub fn to_int(buffer : &String)
-    -> Option<Token>
+impl Lexer {
+    pub fn chage_state(
+        &mut self,
+        next : State,
+        parse_buffer : bool,
+        to_append : Option<char>)
     {
-        buffer.parse::<i64>().map_or(None, |v| {
-            let wrapper = Token::IntConst(v);
-            Some(wrapper)
-        })
+        if parse_buffer {
+            let token = Parser::parse(&buffer, buffer_type.clone()); 
+            if token.is_some() {
+                self.tokens.push(token.unwrap());
+                self.buffer = String::new();
+            }
+            else {
+                panic!("Buffer parser error");
+            }
+        }
+        if to_append.is_some() {
+            buffer.push(to_append.unwrap());
+        }
+        self.state = next;
     }
     
-    pub fn to_float(buffer : &String)
-    -> Option<Token>
-    {
-        buffer.parse::<f32>().map_or(None, |v| {
-            let wrapper = Token::FloatConst(v);
-            Some(wrapper)
-        })
-    }
-
-    pub fn to_single_operator(buffer : &String)
-    -> Option<Token>
-    {
-        match &buffer[..] {
-            ")" => Some(Token::LBracket),
-            "(" => Some(Token::RBracket),
-            "}" => Some(Token::LBrace),
-            "{" => Some(Token::RBrace),
-            "]" => Some(Token::LCol),
-            "[" => Some(Token::RCol),
-            "+" => Some(Token::Plus),
-            "-" => Some(Token::Minus),
-            "*" => Some(Token::Mult),
-            "/" => Some(Token::Div),
-            ";" => Some(Token::PComma),
-            "," => Some(Token::Comma),
-            _ => None
-        }
-    }
-
-    pub fn to_double_operator(buffer : &String)
-    -> Option<Token>
-    {
-        match &buffer[..] {
-            "==" => Some(Token::EQ),
-            "!=" => Some(Token::NEQ),
-            ">=" => Some(Token::GE),
-            "<=" => Some(Token::LE),
-            _ => None
-        }
-    }
-
-    pub fn to_key(buffer : &String)
-    -> Option<Token>
-    {
-        let token = match &buffer[..] {
-            "int" => Token::Int,
-            _ => Token::Id(buffer.clone())
-        };
-        Some(token)
-    }
-    
-    pub fn parse(src : &String)
+    pub fn parse(
+        &mut self,
+        src : &String)
     -> Vec<Token>
     {
-        let mut state = State::Base(None);
-        let mut tokens : Vec<Token> = Vec::new();
-        let mut buffer : String = String::new();
+        self.state = State::Base(None);
+        self.tokens : Vec<Token> = Vec::new();
+        self.buffer : String = String::new();
+        
         let mut to_buffer : bool;
-
+        
         for c in src.chars() {
             println!("{buffer}");
 
@@ -89,61 +107,46 @@ impl Parser {
 
             match state {
                 // Base point and single component operators
-                State::Base(buffer_parser) => {
-                    if buffer_parser.is_some() {
-                        let token = buffer_parser.unwrap()(&buffer);
-                        tokens.push(token.unwrap());
-                        buffer = String::new();
-                    }
+                State::Base(ref buffer_type) => {
 
                     if c.is_alphabetic() {
-                        state = State::Name;
+                        self.change_state(State::Name, false, Some(c));
                     }
                     else if c.is_numeric() {
-                        state = State::Integer;
+                        self.change_state(State::Integer, false, Some(c));
                     }
                     else {
-                        match String::from("(){}[]+-*/;,").find(c) {
-                            Some(_) => state = State::Base(Some(Parser::to_single_operator)),
-                            None => match String::from("=!><").find(c) {
-                                Some(_) => state = State::Base(Some(Parser::to_double_operator)),
+                        match String::from("(){}[]+*/;,").find(c) {
+                            Some(_) => self.change_state(State::Base(None), true, c),
+                            None => match String::from("-=!><").find(c) {
+                                Some(_) => self.change_state(State::Base(None), false, c),
                                 None => {}
                             }
                         }
                     }
                 }
 
-                // Double component operators
-                State::Double(ref expected, ref result, ref except) => {
-                    tokens.push(
-                        if c == *expected { result.clone() }
-                        else { except.clone() }
-                    );
-                    state = State::Base(None);
-                    to_buffer = false;
-                }
-
                 // Names
                 State::Name => {
                     if !c.is_alphanumeric() && c != '_' {
-                        state = State::Base(Some(Parser::to_key));
+                        state = State::Base(None, true, c);
                     }
                 }
 
                 // Integer
                 State::Integer => {
                     if c == '.' {
-                        state = State::Float;
+                        self.change_state(State::Float, false, c);
                     }
                     else if !c.is_numeric() {
-                        state = State::Base(Some(Parser::to_int));
+                        self.change_state(State::Base(TokenType::IntConst), true, c);
                     }
                 }
 
                 // Float
                 State::Float => {
                     if !c.is_numeric() {
-                        state = State::Base(Some(Parser::to_float));
+                        state = State::Base(Some(TokenType::FloatConst));
                     }
                 }
             }            

@@ -1,14 +1,15 @@
-use std::collections::HashMap;
-
 #[derive(Clone, Debug)]
-pub enum Token {
-    Id(String),
+pub enum TokenType {
+    Id,
+
     Int,
     Float,
     Char,
-    IntConst(i64),
-    FloatConst(f32),
-    CharConst(char),
+
+    IntConst,
+    FloatConst,
+    CharConst,
+
     LBracket,
     RBracket,
     LBrace,
@@ -19,24 +20,22 @@ pub enum Token {
     PComma,
     Attr,
     Not,
+    Plus,
+    Minus,
+    Mult,
+    Div,
+
     EQ,
     NEQ,
     LT,
     LE,
     GT,
-    GE,
-    Plus,
-    Minus,
-    Mult,
-    Div
+    GE
 }
 
-impl Token {
-    pub fn get_keyword_table()
-    -> HashMap<String, Token>
-    {
-        HashMap::from([
-            (String::from("int"), Token::Int)
-        ])
-    }
+#[derive(Clone, Debug)]
+pub struct Token {
+    pub lexeme : String,
+    pub _type : TokenType,
+    pub line : i32
 }
