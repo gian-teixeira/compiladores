@@ -1,5 +1,7 @@
 #[derive(Clone, Debug)]
 pub enum TokenType {
+    Infer,
+
     Id,
 
     Int,

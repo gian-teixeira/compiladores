@@ -3,7 +3,7 @@ use crate::token::TokenType;
 use regex::Regex;
 
 enum State {
-    Base(Option<TokenType>),
+    Initial,
     Name,
     Integer,
     Float
@@ -13,12 +13,11 @@ pub struct Parser {}
 impl Parser {
     pub fn parse(
         buffer : &String,
-        token_type : Option<TokenType>)
+        token_type : TokenType)
     -> Option<Token>
     {
         let _type = match token_type {
-            Some(_) => token_type,
-            None => match &buffer[..] {
+            Token::TypeInfer => match &buffer[..] {
                 ")" => Some(TokenType::RBracket),
                 "(" => Some(TokenType::LBracket),
                 "}" => Some(TokenType::RBrace),
@@ -45,8 +44,8 @@ impl Parser {
                         false => None
                     }
                 }
-                // TODO : check if name is valid (not start with weird simble, etc)
-            }
+            },
+            _ => token_type
         };
 
         match _type {
@@ -67,14 +66,39 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn chage_state(
+    pub fn transition(
+        &mut self,
+        state : State,
+        symbol : char,
+        check_previous : bool)
+    {
+        let last_token = None;
+
+        if check_previous {
+            current_token = Parser::parse(&self.buffer, TokenType::Infer);
+        }
+
+        self.buffer.append(symbol);
+
+        let new_token = Parser::parse(&self.buffer, TokenType::Infer);
+        if new_token
+    }
+
+    pub fn change_state(
         &mut self,
         next : State,
-        parse_buffer : bool,
+        token_type : Option<TokenType>,
         to_append : Option<char>)
     {
-        if parse_buffer {
-            let token = Parser::parse(&buffer, buffer_type.clone()); 
+        if to_append.is_some() {
+            let c = to_append.unwrap();
+            if !c.is_whitespace() {
+                buffer.push(c);
+            }
+        }
+
+        if token_type.is_some() {
+            let token = Parser::parse(&buffer, token_type.unwrap()); 
             if token.is_some() {
                 self.tokens.push(token.unwrap());
                 self.buffer = String::new();
@@ -83,9 +107,7 @@ impl Lexer {
                 panic!("Buffer parser error");
             }
         }
-        if to_append.is_some() {
-            buffer.push(to_append.unwrap());
-        }
+
         self.state = next;
     }
     
@@ -105,30 +127,50 @@ impl Lexer {
 
             to_buffer = true;
 
-            match state {
+            match self.state {
                 // Base point and single component operators
-                State::Base(ref buffer_type) => {
-
+                State::Initial => {
                     if c.is_alphabetic() {
-                        self.change_state(State::Name, false, Some(c));
+                        self.change_state(State::Name, None, Some(c));
                     }
                     else if c.is_numeric() {
-                        self.change_state(State::Integer, false, Some(c));
+                        self.change_state(State::Integer, None, Some(c));
                     }
                     else {
                         match String::from("(){}[]+*/;,").find(c) {
-                            Some(_) => self.change_state(State::Base(None), true, c),
+                            Some(_) => self.change_state(State::Initial, TokenType::Infer, Some(c)),
                             None => match String::from("-=!><").find(c) {
-                                Some(_) => self.change_state(State::Base(None), false, c),
+                                Some(_) => self.change_state(State::Initial, None, Some(c)),
                                 None => {}
                             }
                         }
                     }
                 }
 
+                State::DoubleOperator => {
+                    let single_token = Parser::parse(&buffer, TokenType::Infer);
+                    buffer.push(c);
+                    let double_token = Parser::parse(&buffer, TokenType::Infer);
+                    
+                    let token = if double_token.is_some() { double_token }
+                    else if single_token { 
+
+                    if double_token.is_some() {
+
+                    }
+                    match single_token {
+                        Some(T) => {
+                            self.tokens.push(T);
+                            self.buffer = String::new();
+                        }
+                        None => 
+                    self.change_state(State::Initial, TokenType::Infer, Some(c));
+                }
+
                 // Names
                 State::Name => {
                     if !c.is_alphanumeric() && c != '_' {
+                        self.change_state(State::Initial, None, c);
                         state = State::Base(None, true, c);
                     }
                 }
@@ -146,6 +188,7 @@ impl Lexer {
                 // Float
                 State::Float => {
                     if !c.is_numeric() {
+                        self.change_state(
                         state = State::Base(Some(TokenType::FloatConst));
                     }
                 }
