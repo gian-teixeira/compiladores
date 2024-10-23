@@ -3,6 +3,7 @@ use regex::Regex;
 #[derive(Clone, Debug)]
 pub enum TokenType {
     Infer,
+    Ignore,
 
     Id,
 
@@ -20,6 +21,7 @@ pub enum TokenType {
     RBrace,
     LCol,
     RCol,
+    Colon,
     Comma,
     PComma,
     Attr,
@@ -34,7 +36,15 @@ pub enum TokenType {
     LT,
     LE,
     GT,
-    GE
+    GE,
+
+    If,
+    Else,
+    While,
+    Function,
+    Return,
+    Main,
+    Println,
 }
 
 #[derive(Clone, Debug)]
@@ -63,6 +73,7 @@ impl Token {
                 "-" => Some(TokenType::Minus),
                 "*" => Some(TokenType::Mult),
                 "/" => Some(TokenType::Div),
+                ":" => Some(TokenType::Colon),
                 ";" => Some(TokenType::PComma),
                 "," => Some(TokenType::Comma),
                 "=" => Some(TokenType::Attr),
@@ -75,6 +86,13 @@ impl Token {
                 "int" => Some(TokenType::Int),
                 "float" => Some(TokenType::Float),
                 "char" => Some(TokenType::Char),
+                "if" => Some(TokenType::If),
+                "else" => Some(TokenType::Else),
+                "while" => Some(TokenType::While),
+                "fn" => Some(TokenType::Function),
+                "return" => Some(TokenType::Return),
+                "main" => Some(TokenType::Main),
+                "println" => Some(TokenType::Println),
                 _ => {
                     let re = Regex::new(r"[a-zA-Z0-9_]+").unwrap();
                     match re.is_match(buffer) {
@@ -88,9 +106,9 @@ impl Token {
 
         match _type {
             None => None,
-            Some(T) => Some(Token {
+            Some(t) => Some(Token {
                 lexeme : String::from(buffer),
-                _type : T,
+                _type : t,
                 line : line
             })
         }
