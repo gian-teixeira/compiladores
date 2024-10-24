@@ -4,17 +4,13 @@ use regex::Regex;
 pub enum TokenType {
     Infer,
     Ignore,
-
     Id,
-
     Int,
     Float,
     Char,
-
     IntConst,
     FloatConst,
     CharConst,
-
     LBracket,
     RBracket,
     LBrace,
@@ -30,14 +26,12 @@ pub enum TokenType {
     Minus,
     Mult,
     Div,
-
     EQ,
     NEQ,
     LT,
     LE,
     GT,
     GE,
-
     If,
     Else,
     While,
@@ -49,18 +43,13 @@ pub enum TokenType {
 
 #[derive(Clone, Debug)]
 pub struct Token {
-    pub lexeme : String,
-    pub _type : TokenType,
-    pub line : i32
+    pub lexeme: String,
+    pub _type: TokenType,
+    pub line: i32,
 }
 
 impl Token {
-    pub fn new(
-        buffer : &str,
-        token_type : TokenType,
-        line : i32)
-    -> Option<Token>
-    {
+    pub fn new(buffer: &str, token_type: TokenType, line: i32) -> Option<Token> {
         let _type = match token_type {
             TokenType::Infer => match buffer {
                 ")" => Some(TokenType::RBracket),
@@ -97,20 +86,20 @@ impl Token {
                     let re = Regex::new(r"[a-zA-Z0-9_]+").unwrap();
                     match re.is_match(buffer) {
                         true => Some(TokenType::Id),
-                        false => None
+                        false => None,
                     }
                 }
             },
-            _ => Some(token_type)
+            _ => Some(token_type),
         };
 
         match _type {
             None => None,
             Some(t) => Some(Token {
-                lexeme : String::from(buffer),
-                _type : t,
-                line : line
-            })
+                lexeme: String::from(buffer),
+                _type: t,
+                line: line,
+            }),
         }
     }
 }
