@@ -39,6 +39,7 @@ pub enum TokenType {
     Return,
     Main,
     Println,
+    Let,
 }
 
 #[derive(Clone, Debug)]
@@ -82,6 +83,7 @@ impl Token {
                 "return" => Some(TokenType::Return),
                 "main" => Some(TokenType::Main),
                 "println" => Some(TokenType::Println),
+                "let" => Some(TokenType::Let),
                 _ => {
                     let re = Regex::new(r"[a-zA-Z0-9_]+").unwrap();
                     match re.is_match(buffer) {
