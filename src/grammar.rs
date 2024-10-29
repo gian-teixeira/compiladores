@@ -4,16 +4,29 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 pub struct Grammar {
+    tokens : Vec<Token>,
+    current : i32,
+
     rules : HashMap<String, 
     terminals : 
+    error : Option<String>,
+    
 }
 
 impl Grammar {
     
 
-    fn match(token_type : TokenType)
+    fn match(
+        &self,
+        expected : &TokenType)
     {
-         
+        let token = &self.tokens[self.current];
+        if token._type != token_type {
+            self.error = String::from(
+                format!("SINTATIC ERROR on line {} : Unexpected token {}",
+                        token.line, token.lexeme));
+            return false; 
+        }
     }
 
     fn Program(&self) 
