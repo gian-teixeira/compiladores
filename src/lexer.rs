@@ -12,6 +12,7 @@ enum State {
     IntConst,
     FloatConst,
     CharConst,
+    FormatString,
 }
 
 struct Builder<'a> {
@@ -103,6 +104,8 @@ pub fn parse(filename: &str) -> Vec<Token> {
                     builder.state = State::IntConst;
                 } else if builder.symbol == '\'' {
                     builder.state = State::CharConst;
+                } else if builder.symbol == '\"' {
+                    builder.state = State::FormatString;
                 }
             }
 
@@ -145,6 +148,13 @@ pub fn parse(filename: &str) -> Vec<Token> {
                 builder.state = State::Base;
             }
 
+            State::FormatString => {
+                if builder.symbol == '\"' {
+                    builder.push(TokenType::FormatString, true);
+                    builder.state = State::Base;
+                }
+            }
+
             _ => {}
         }
 
@@ -153,5 +163,8 @@ pub fn parse(filename: &str) -> Vec<Token> {
         }
     }
 
+    builder
+        .tokens
+        .push(Token::new("", TokenType::EOF, -1).unwrap());
     builder.tokens
 }

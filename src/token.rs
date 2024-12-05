@@ -1,9 +1,10 @@
 use regex::Regex;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum TokenType {
     Infer,
     Ignore,
+    EOF,
     Id,
     Int,
     Float,
@@ -40,6 +41,8 @@ pub enum TokenType {
     Main,
     Println,
     Let,
+    FormatString,
+    Arrow,
 }
 
 #[derive(Clone, Debug)]
@@ -73,6 +76,7 @@ impl Token {
                 "==" => Some(TokenType::EQ),
                 ">=" => Some(TokenType::GE),
                 "<=" => Some(TokenType::LE),
+                "->" => Some(TokenType::Arrow),
                 "int" => Some(TokenType::Int),
                 "float" => Some(TokenType::Float),
                 "char" => Some(TokenType::Char),

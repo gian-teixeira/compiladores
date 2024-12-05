@@ -1,259 +1,401 @@
+#![allow(non_snake_case)]
+
 use crate::token::Token;
 use crate::token::TokenType;
-use std::collections::HashMap;
-use std::collections::HashSet;
-
-struct SyntaticError {
-    token : Option<Token>,
-    line : Option<i32>,
-}
-
-impl SyntaticError {
-    fn dummy()
-    -> SyntaticError
-    {
-        SyntaticError {
-            token : None,
-            line : None
-        }
-    }
-
-    fn is_dummy(&self)
-    -> bool
-    {
-        return self.token.is_none();
-    }
-
-    fn 
-}
-
-impl std::ops::BitAnd for SyntaticError {
-    type Output = SyntaticError;
-    fn bitand(self, other) -> SyntaticError {
-        if self.is_dummy() {
-            return other;
-        } 
-        return self;
-    }
-}
 
 pub struct Grammar {
-    tokens : &Vec<Token>,
-    head : i32,
-
-    rules : HashMap<String, 
-    terminals : 
-    error : Option<String>,
-    
+    tokens: Vec<Token>,
+    head: usize,
 }
 
 impl Grammar {
-    fn new(tokens : &Vec<Token>)
-    -> Grammar
-    {
+    fn new(tokens: Vec<Token>) -> Grammar {
         Grammar {
-            tokens : tokens,
-            head : 0
-        } 
+            tokens: tokens,
+            head: 0,
+        }
     }
 
-    fn check_token(&self)
-    -> Token
-    {
-        return self.tokens[self.head];
+    pub fn analyze(token_list: &Vec<Token>) {
+        let tokens = token_list.clone();
+        let mut helper = Grammar::new(tokens);
+        helper.Program();
     }
 
-    fn error(&self)
-    {
+    fn check_token(&mut self) -> Token {
+        return self.tokens[self.head].clone();
+    }
+
+    fn error(&mut self) {
         let token = self.check_token();
-        panic!(format!("SYNTATIC ERROR on line {} : Unexpected token {}",
-            token.line, token.lexeme));
+        panic!(
+            "SYNTATIC ERROR on line {} : Unexpected token {}",
+            token.line, token.lexeme
+        );
     }
 
-    fn match(&self,
-        expected : &TokenType)
-    {
-        if self.check_token()._type != token_type {
+    fn Match(&mut self, expected: TokenType) {
+        if self.check_token()._type != expected {
+            println!("{:?} {:?}", self.check_token()._type, expected);
             self.error();
         }
-        head += 1;
+        println!("{:?}", self.check_token());
+        self.head += 1;
     }
 
-    fn Program(&self) {
+    fn Program(&mut self) {
         self.Function();
         self.FunctionSequence();
     }
 
-    fn FunctionSequence(&self) {
-        if self.check_token()._type == TokenType::Function {
-            self.Function();
-            self.FunctionSequence();
+    fn FunctionSequence(&mut self) {
+        match self.check_token()._type {
+            TokenType::Function => {
+                self.Function();
+                self.FunctionSequence();
+            }
+            TokenType::EOF | _ => {}
         }
     }
 
-    fn Function(&self) {
-        self.match(TokenType::Function);
+    fn Function(&mut self) {
+        self.Match(TokenType::Function);
         self.FunctionName();
-        self.match(TokenType::LBracket);
+        self.Match(TokenType::LBracket);
         self.ParameterList();
-        self.match(TokenType::RBracket);
+        self.Match(TokenType::RBracket);
         self.FunctionReturnType();
         self.Block();
     }
 
-    fn FunctionName(&self) {
+    fn FunctionName(&mut self) {
         match self.check_token()._type {
-            TokenType::Id => self.match(TokenType::Id),
-            TokenType::Main => self.match(TokenType::Main),
-            _ => self.error()
+            TokenType::Id => self.Match(TokenType::Id),
+            TokenType::Main => self.Match(TokenType::Main),
+            TokenType::EOF | _ => self.error(),
         }
     }
 
-    fn ParameterList(&self) {
-        if self.get_token()._type == TokenType::Id {
-            self.match(TokenType::Id);
-            self.match(TokenType::Colon);
-            self.Type();
-            self.ParameterList_()
+    fn ParameterList(&mut self) {
+        match self.check_token()._type {
+            TokenType::Id => {
+                self.Match(TokenType::Id);
+                self.Match(TokenType::Colon);
+                self.Type();
+                self.ParameterList_()
+            }
+            TokenType::EOF | _ => {}
         }
     }
 
-    fn ParameterList_(&self) {
-        if self.get_token()._type == TokenType::Comma {
-            self.match(TokenType::Comma);
-            self.match(TokenType::Id);
-            self.match(TokenType::Colon);
-            self.Type();
-            self.ParameterList_();
+    fn ParameterList_(&mut self) {
+        match self.check_token()._type {
+            TokenType::Comma => {
+                self.Match(TokenType::Comma);
+                self.Match(TokenType::Id);
+                self.Match(TokenType::Colon);
+                self.Type();
+                self.ParameterList_();
+            }
+            TokenType::EOF | _ => {}
         }
     }
 
-    fn FunctionReturnType(&self) {
-        if self.get_token()._type == TokenType::Arrow {
-            self.match(TokenType::Arrow);
-            self.Type();
+    fn FunctionReturnType(&mut self) {
+        match self.check_token()._type {
+            TokenType::Arrow => {
+                self.Match(TokenType::Arrow);
+                self.Type();
+            }
+            TokenType::EOF | _ => {}
         }
     }
 
-    fn Block(&self) {
-        self.match(TokenType::LBrace);
+    fn Block(&mut self) {
+        self.Match(TokenType::LBrace);
         self.Sequence();
-        self.match(TokenType::RBrace);
+        self.Match(TokenType::RBrace);
     }
 
-    fn Sequence(&self) {
+    fn Sequence(&mut self) {
         match self.check_token()._type {
             TokenType::Let => {
                 self.Declaration();
                 self.Sequence();
-            },
-            TokenType::Id | TokenType::If | TokenType::While 
-                    | TokenType::Println | TokenType::Return => {
+            }
+            TokenType::Id
+            | TokenType::If
+            | TokenType::While
+            | TokenType::Println
+            | TokenType::Return => {
                 self.Command();
                 self.Sequence();
-            },
-            _ => {}
+            }
+            TokenType::EOF | _ => {}
         }
     }
 
-    fn Declaration(&self) {
-        self.match(TokenType::Let);
+    fn Declaration(&mut self) {
+        self.Match(TokenType::Let);
         self.VarList();
-        self.match(TokenType::Colon);
+        self.Match(TokenType::Colon);
         self.Type();
-        self.match(TokenType::PComma);
+        self.Match(TokenType::PComma);
     }
 
-    fn VarList(&self) {
-        self.match(TokenType::Id);
+    fn VarList(&mut self) {
+        self.Match(TokenType::Id);
         self.VarList_();
     }
 
-    fn VarList_(&self) {
-        if self.check_token()._type == TokenType::Id {
-            self.match(TokenType::Id);
-            self.VarList_();
-        }
-    }
-
-    fn Type(&self) {
+    fn VarList_(&mut self) {
         match self.check_token()._type {
-            TokenType::Int => self.match(TokenType::Int),
-            TokenType::Float => self.match(TokenType::Float),
-            TokenType::Char => self.match(TokenType::Char),
-            _ => self.error();
+            TokenType::Comma => {
+                self.Match(TokenType::Comma);
+                self.Match(TokenType::Id);
+                self.VarList_();
+            }
+            TokenType::EOF | _ => {}
         }
     }
 
-    fn Command(&self) {
+    fn Type(&mut self) {
+        match self.check_token()._type {
+            TokenType::Int => self.Match(TokenType::Int),
+            TokenType::Float => self.Match(TokenType::Float),
+            TokenType::Char => self.Match(TokenType::Char),
+            TokenType::EOF | _ => self.error(),
+        }
+    }
+
+    fn Command(&mut self) {
         match self.check_token()._type {
             TokenType::Id => {
-                self.match(TokenType::Id);
+                self.Match(TokenType::Id);
                 self.AttrOrCall();
-            },
+            }
             TokenType::If => self.IfCommand(),
             TokenType::While => {
-                self.match(TokenType::While);
+                self.Match(TokenType::While);
                 self.Expr();
                 self.Block();
-            },
+            }
             TokenType::Println => {
-                self.match(TokenType::Println);
-                self.match(TokenType::LBracket);
-                self.match(TokenType::FormatString);
-                self.match(TokenType::Comma);
+                self.Match(TokenType::Println);
+                self.Match(TokenType::LBracket);
+                self.Match(TokenType::FormatString);
+                self.Match(TokenType::Comma);
                 self.ArgList();
-                self.match(TokenType::RBracket);
-                self.match(TokenType::PComma);
-            },
+                self.Match(TokenType::RBracket);
+                self.Match(TokenType::PComma);
+            }
             TokenType::Return => {
-                self.match(TokenType::Return);
+                self.Match(TokenType::Return);
                 self.Expr();
-                self.match(TokenType::PComma);
-            },
-            _ => self.error()
+                self.Match(TokenType::PComma);
+            }
+            TokenType::EOF | _ => self.error(),
         }
     }
 
-    fn AttrOrCall(&self) {
+    fn AttrOrCall(&mut self) {
         match self.check_token()._type {
             TokenType::Attr => {
-                self.match(TokenType::Attr);
+                self.Match(TokenType::Attr);
                 self.Expr();
-                self.match(TokenType::PComma);
-            },
+                self.Match(TokenType::PComma);
+            }
             TokenType::LBracket => {
-                self.match(TokenType::LBracket);
+                self.Match(TokenType::LBracket);
                 self.ArgList();
-                self.match(TokenType::RBracket);
-                self.match(TokenType::PComma);
-            },
-            _ => self.error();
+                self.Match(TokenType::RBracket);
+                self.Match(TokenType::PComma);
+            }
+            TokenType::EOF | _ => self.error(),
         }
     }
 
-    fn IfCommand(&self) {
+    fn IfCommand(&mut self) {
         match self.check_token()._type {
             TokenType::If => {
-                self.match(TokenType::If);
+                self.Match(TokenType::If);
                 self.Expr();
                 self.Block();
                 self.ElseCommand();
-            },
+            }
             TokenType::LBrace => self.Block(),
-            _ => self.error();
+            TokenType::EOF | _ => self.error(),
         }
     }
 
-    fn ElseCommand(&self) {
+    fn ElseCommand(&mut self) {
         match self.check_token()._type {
             TokenType::Else => {
-                self.match(TokenType::Else);
+                self.Match(TokenType::Else);
                 self.IfCommand();
-            },
-            _ => {}
+            }
+            TokenType::EOF | _ => {}
+        }
+    }
+
+    fn Expr(&mut self) {
+        self.Rel();
+        self.ExprOpc();
+    }
+
+    fn ExprOpc(&mut self) {
+        match self.check_token()._type {
+            TokenType::EQ | TokenType::NEQ => {
+                self.OpEqual();
+                self.Rel();
+                self.ExprOpc();
+            }
+            TokenType::EOF | _ => {}
+        }
+    }
+
+    fn OpEqual(&mut self) {
+        match self.check_token()._type {
+            TokenType::EQ => self.Match(TokenType::EQ),
+            TokenType::NEQ => self.Match(TokenType::NEQ),
+            TokenType::EOF | _ => self.error(),
+        }
+    }
+
+    fn Rel(&mut self) {
+        self.Add();
+        self.RelOpc();
+    }
+
+    fn RelOpc(&mut self) {
+        match self.check_token()._type {
+            TokenType::LT | TokenType::LE | TokenType::GT | TokenType::GE => {
+                self.OpRel();
+                self.Add();
+                self.RelOpc();
+            }
+            TokenType::EOF | _ => {}
+        }
+    }
+
+    fn OpRel(&mut self) {
+        match self.check_token()._type {
+            TokenType::LT => self.Match(TokenType::LT),
+            TokenType::LE => self.Match(TokenType::LE),
+            TokenType::GT => self.Match(TokenType::GT),
+            TokenType::GE => self.Match(TokenType::GE),
+            TokenType::EOF | _ => self.error(),
+        }
+    }
+
+    fn Add(&mut self) {
+        self.Term();
+        self.AddOpc();
+    }
+
+    fn AddOpc(&mut self) {
+        match self.check_token()._type {
+            TokenType::Plus | TokenType::Minus => {
+                self.OpAdd();
+                self.Term();
+                self.AddOpc();
+            }
+            TokenType::EOF | _ => {}
+        }
+    }
+
+    fn OpAdd(&mut self) {
+        match self.check_token()._type {
+            TokenType::Plus => self.Match(TokenType::Plus),
+            TokenType::Minus => self.Match(TokenType::Minus),
+            TokenType::EOF | _ => self.error(),
+        }
+    }
+
+    fn Term(&mut self) {
+        self.Factor();
+        self.TermOpc();
+    }
+
+    fn TermOpc(&mut self) {
+        match self.check_token()._type {
+            TokenType::Mult | TokenType::Div => {
+                self.OpMult();
+                self.Factor();
+                self.TermOpc();
+            }
+            TokenType::EOF | _ => {}
+        }
+    }
+
+    fn OpMult(&mut self) {
+        match self.check_token()._type {
+            TokenType::Mult => self.Match(TokenType::Mult),
+            TokenType::Div => self.Match(TokenType::Div),
+            TokenType::EOF | _ => self.error(),
+        }
+    }
+
+    fn Factor(&mut self) {
+        match self.check_token()._type {
+            TokenType::Id => {
+                self.Match(TokenType::Id);
+                self.FunctionCall();
+            }
+            TokenType::IntConst => self.Match(TokenType::IntConst),
+            TokenType::FloatConst => self.Match(TokenType::FloatConst),
+            TokenType::CharConst => self.Match(TokenType::CharConst),
+            TokenType::LBracket => {
+                self.Match(TokenType::LBracket);
+                self.Expr();
+                self.Match(TokenType::RBracket);
+            }
+            TokenType::EOF | _ => self.error(),
+        }
+    }
+
+    fn FunctionCall(&mut self) {
+        match self.check_token()._type {
+            TokenType::LBracket => {
+                self.Match(TokenType::LBracket);
+                self.ArgList();
+                self.Match(TokenType::RBracket);
+            }
+            TokenType::EOF | _ => {}
+        }
+    }
+
+    fn ArgList(&mut self) {
+        match self.check_token()._type {
+            TokenType::Id | TokenType::IntConst | TokenType::FloatConst | TokenType::CharConst => {
+                self.Arg();
+                self.ArgList_();
+            }
+            TokenType::EOF | _ => {}
+        }
+    }
+
+    fn ArgList_(&mut self) {
+        match self.check_token()._type {
+            TokenType::Comma => {
+                self.Match(TokenType::Comma);
+                self.Arg();
+                self.ArgList_();
+            }
+            TokenType::EOF | _ => {}
+        }
+    }
+
+    fn Arg(&mut self) {
+        match self.check_token()._type {
+            TokenType::Id => {
+                self.Match(TokenType::Id);
+                self.FunctionCall();
+            }
+            TokenType::IntConst => self.Match(TokenType::IntConst),
+            TokenType::FloatConst => self.Match(TokenType::FloatConst),
+            TokenType::CharConst => self.Match(TokenType::CharConst),
+            TokenType::EOF | _ => self.error(),
         }
     }
 }
-
-pub fn check(tokens: &Vec<Token>) {}
