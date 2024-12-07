@@ -29,7 +29,7 @@ impl Grammar {
     fn error(&mut self) {
         let token = self.check_token();
         panic!(
-            "SYNTATIC ERROR on line {} : Unexpected token {}",
+            "SYNTATIC ERROR : Unexpected token {1} [line {0}]",
             token.line, token.lexeme
         );
     }
@@ -39,7 +39,7 @@ impl Grammar {
             println!("{:?} {:?}", self.check_token()._type, expected);
             self.error();
         }
-        println!("{:?}", self.check_token());
+        //println!("{:?}", self.check_token());
         self.head += 1;
     }
 

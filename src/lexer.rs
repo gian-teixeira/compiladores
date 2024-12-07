@@ -66,7 +66,8 @@ struct Builder<'a> {
 }
 
 impl Builder<'_> {
-    pub fn new<'a>(output : &'a mut Vec<Token>) -> Builder<'a> {
+    pub fn new<'a>(output : &'a mut Vec<Token>)
+    -> Builder<'a> {
         return Builder {
             nline : 0,
             tokens : output,
@@ -84,7 +85,7 @@ impl Builder<'_> {
         let lexeme = line_reader.get_lexeme(include_current);
         match Token::new(lexeme, token_type, self.nline) {
             Some(t) => {
-                println!("{:?}", t);
+                //println!("{:?}", t);
                 self.tokens.push(t);
                 self.should_go_next = include_current;
                 line_reader.clear_buffer(include_current);
@@ -96,7 +97,9 @@ impl Builder<'_> {
         return true;
     }
 
-    pub fn feed(&mut self, line : String) {
+    pub fn feed(&mut self, 
+        line : String) 
+    {
         let mut line_reader = LineReader::new(&line);
         self.nline += 1;
 
@@ -123,8 +126,10 @@ impl Builder<'_> {
                         self.state = State::IntConst;
                     } else if line_reader.get_symbol() == '\'' {
                         self.state = State::CharConst;
+                        line_reader.clear_buffer(true);
                     } else if line_reader.get_symbol() == '\"' {
                         self.state = State::FormatString;
+                        line_reader.clear_buffer(true);
                     }
                 }
 
@@ -164,14 +169,20 @@ impl Builder<'_> {
                     if line_reader.get_symbol() != '\'' {
                         panic!("Expected |\'|");
                     }
-                    self.push(&mut line_reader, TokenType::CharConst, true);
+                    self.push(&mut line_reader, TokenType::CharConst, false);
+                    line_reader.go_next();
+                    line_reader.clear_buffer(false);
                     self.state = State::Base;
+                    continue;
                 }
 
                 State::FormatString => {
                     if line_reader.get_symbol() == '\"' {
-                        self.push(&mut line_reader, TokenType::FormatString, true);
+                        self.push(&mut line_reader, TokenType::FormatString, false);
+                        line_reader.go_next();
+                        line_reader.clear_buffer(false);
                         self.state = State::Base;
+                        continue;
                     }
                 }
 
@@ -185,7 +196,9 @@ impl Builder<'_> {
     }
 }
 
-pub fn parse(filename: &str) -> Vec<Token> {
+pub fn parse(filename: &str) 
+-> Vec<Token> 
+{
     let file_content = std::fs::read_to_string(filename).unwrap_or_else(|err| {
         println!("Error reading the file {0} : {1}", filename, err);
         std::process::exit(1);
