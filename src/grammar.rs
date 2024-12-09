@@ -2,6 +2,7 @@
 
 use crate::token::Token;
 use crate::token::TokenType;
+use crate::error::raise;
 
 pub struct Grammar {
     tokens: Vec<Token>,
@@ -28,15 +29,17 @@ impl Grammar {
 
     fn error(&mut self) {
         let token = self.check_token();
-        panic!(
-            "SYNTATIC ERROR : Unexpected token {1} [line {0}]",
-            token.line, token.lexeme
-        );
+        raise(format!("SYNTATIC ERROR : Unexpected token {1} [line {0}]",
+            token.line, token.lexeme));
+        //panic!(
+        //    "SYNTATIC ERROR : Unexpected token {1} [line {0}]",
+        //    token.line, token.lexeme
+        //);
     }
 
     fn Match(&mut self, expected: TokenType) {
         if self.check_token()._type != expected {
-            println!("{:?} {:?}", self.check_token()._type, expected);
+            //println!("{:?} {:?}", self.check_token()._type, expected);
             self.error();
         }
         //println!("{:?}", self.check_token());

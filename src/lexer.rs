@@ -1,5 +1,6 @@
 use crate::token::Token;
 use crate::token::TokenType;
+use crate::error::raise;
 
 #[derive(Debug)]
 enum State {
@@ -46,10 +47,13 @@ impl LineReader<'_> {
         return self.symbol.expect("Line Reader : no more symbols");
     }
 
-    pub fn get_lexeme(&mut self, include_current : bool) -> &str {
+    pub fn get_lexeme(&mut self, include_current : bool) -> Option<&str> {
         let _end = self.end + (include_current as usize);
+        if _end == self.begin {
+            return None
+        }
         let lexeme = &self.source[self.begin.._end];
-        return lexeme;
+        return Some(lexeme);
     }
 
     pub fn clear_buffer(&mut self, include_current : bool) {
@@ -80,17 +84,26 @@ impl Builder<'_> {
     pub fn push(&mut self, 
         line_reader : &mut LineReader,
         token_type: TokenType, 
-        include_current: bool) -> bool 
+        include_current: bool,
+        raise_error : bool) 
+    -> bool 
     {
-        let lexeme = line_reader.get_lexeme(include_current);
+        let _lexeme = line_reader.get_lexeme(include_current);
+        if _lexeme.is_none() {
+            return true;
+        }
+        let lexeme = _lexeme.unwrap();
         match Token::new(lexeme, token_type, self.nline) {
             Some(t) => {
-                //println!("{:?}", t);
                 self.tokens.push(t);
                 self.should_go_next = include_current;
                 line_reader.clear_buffer(include_current);
             }
             None => {
+                if raise_error {
+                    //panic!("{}", format!("LEXICAL ERROR : Unexpected token {lexeme} on line {0}", self.nline));
+                    raise(format!("LEXICAL ERROR : Unexpected token [{1}] on line {0}", self.nline, lexeme));
+                }   
                 return false;
             }
         }
@@ -107,17 +120,23 @@ impl Builder<'_> {
             let current_symbol = line_reader.symbol.unwrap();
             self.should_go_next = true;
 
-            if line_reader.get_symbol().is_whitespace() && line_reader.begin == line_reader.end {
-                line_reader.begin += 1;
-                self.push(&mut line_reader, TokenType::Infer, true);
-                line_reader.go_next();
-                continue;
-            }
+            //if line_reader.get_symbol().is_whitespace() {
+            //    //self.push(&mut line_reader, TokenType::Infer, false, false);
+            //    line_reader.begin += 1;
+            //    line_reader.go_next();
+            //    continue;
+            //}
 
             match self.state {
                 State::Base => {
-                    if String::from("()[]{}+*/,;!:").find(line_reader.get_symbol()).is_some() {
-                        self.push(&mut line_reader, TokenType::Infer, true);
+                    if line_reader.get_symbol().is_whitespace() {
+                        self.push(&mut line_reader, TokenType::Infer, false, false);
+                        line_reader.go_next();
+                        line_reader.clear_buffer(false);
+                        continue;
+                    }
+                    else if String::from("()[]{}+*/,;!:").find(line_reader.get_symbol()).is_some() {
+                        self.push(&mut line_reader, TokenType::Infer, true, true);
                     } else if String::from("-=><").find(line_reader.get_symbol()).is_some() {
                         self.state = State::DoubleOperator;
                     } else if line_reader.get_symbol().is_alphabetic() {
@@ -134,8 +153,8 @@ impl Builder<'_> {
                 }
 
                 State::DoubleOperator => {
-                    if !self.push(&mut line_reader, TokenType::Infer, true) {
-                        self.push(&mut line_reader, TokenType::Infer, false);
+                    if !self.push(&mut line_reader, TokenType::Infer, true, false) {
+                        self.push(&mut line_reader, TokenType::Infer, false, true);
                     }
                     self.state = State::Base;
                 }
@@ -143,7 +162,7 @@ impl Builder<'_> {
                 State::Name => {
                     if !line_reader.get_symbol().is_alphanumeric() && 
                             line_reader.get_symbol() != '_' {
-                        self.push(&mut line_reader, TokenType::Infer, false);
+                        self.push(&mut line_reader, TokenType::Infer, false, true);
                         self.state = State::Base;
                     }
                 }
@@ -152,14 +171,14 @@ impl Builder<'_> {
                     if line_reader.get_symbol() == '.' {
                         self.state = State::FloatConst;
                     } else if !line_reader.get_symbol().is_numeric() {
-                        self.push(&mut line_reader, TokenType::IntConst, false);
+                        self.push(&mut line_reader, TokenType::IntConst, false, true);
                         self.state = State::Base;
                     }
                 }
 
                 State::FloatConst => {
                     if !line_reader.get_symbol().is_numeric() {
-                        self.push(&mut line_reader, TokenType::FloatConst, false);
+                        self.push(&mut line_reader, TokenType::FloatConst, false, true);
                         self.state = State::Base;
                     }
                 }
@@ -169,7 +188,7 @@ impl Builder<'_> {
                     if line_reader.get_symbol() != '\'' {
                         panic!("Expected |\'|");
                     }
-                    self.push(&mut line_reader, TokenType::CharConst, false);
+                    self.push(&mut line_reader, TokenType::CharConst, false, true);
                     line_reader.go_next();
                     line_reader.clear_buffer(false);
                     self.state = State::Base;
@@ -178,7 +197,7 @@ impl Builder<'_> {
 
                 State::FormatString => {
                     if line_reader.get_symbol() == '\"' {
-                        self.push(&mut line_reader, TokenType::FormatString, false);
+                        self.push(&mut line_reader, TokenType::FormatString, false, true);
                         line_reader.go_next();
                         line_reader.clear_buffer(false);
                         self.state = State::Base;

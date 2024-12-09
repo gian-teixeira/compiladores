@@ -1,0 +1,16 @@
+Token { lexeme: "fn", _type: Function, line: 1 }
+Token { lexeme: "main", _type: Main, line: 1 }
+Token { lexeme: "(", _type: LBracket, line: 1 }
+Token { lexeme: ")", _type: RBracket, line: 1 }
+Token { lexeme: "{", _type: LBrace, line: 1 }
+Token { lexeme: "let", _type: Let, line: 2 }
+Token { lexeme: "c", _type: Id, line: 2 }
+Token { lexeme: ":", _type: Colon, line: 2 }
+Token { lexeme: "char", _type: Char, line: 2 }
+Token { lexeme: ";", _type: PComma, line: 2 }
+Token { lexeme: "c", _type: Id, line: 3 }
+Token { lexeme: "=", _type: Attr, line: 3 }
+Token { lexeme: "c", _type: CharConst, line: 3 }
+Token { lexeme: ";", _type: PComma, line: 3 }
+Token { lexeme: "}", _type: RBrace, line: 4 }
+Token { lexeme: "", _type: EOF, line: -1 }
