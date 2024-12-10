@@ -1,5 +1,7 @@
 # pcompiler
 
+> Giancarlo Oliveira Teixeira
+
 Compilador da **linguagem P**.
 
 > A linguagem p é uma linguagem de programação didática criada pelo profesor 
