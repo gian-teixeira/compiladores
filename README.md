@@ -27,3 +27,6 @@ Nesta versão, estão implementados apenas os analisadores sintático e léxico.
 A execução gera então dois arquivos: *tokens*, que contém os tokens definidos 
 durante a análise léxica, e *log*, que contém os erros encontrados ao longo da
 execução de ambos os analisadores.
+
+Alguns arquivos de teste, com entradas e saídas, estão disponíveis na 
+pasta *test*.
